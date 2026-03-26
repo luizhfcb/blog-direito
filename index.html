@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direito em Rosa — Blog Jurídico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pink-50: #fdf0f5;
+    --pink-100: #fad5e6;
+    --pink-200: #f5aacf;
+    --pink-300: #ee7db2;
+    --pink-400: #e24d90;
+    --pink-500: #c9306f;
+    --pink-600: #a3224f;
+    --white: #ffffff;
+    --gray-100: #f8f6f7;
+    --gray-200: #ede9eb;
+    --gray-400: #9e9099;
+    --gray-700: #3d3438;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--white);
+    color: var(--gray-700);
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--pink-100);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .nav-logo {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--pink-500);
+    letter-spacing: 0.02em;
+  }
+  .nav-logo span { color: var(--gray-700); font-weight: 300; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--gray-400);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--pink-500); }
+  .nav-right { display: flex; gap: 0.75rem; align-items: center; }
+  .nav-cta {
+    background: var(--pink-400);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 0.45rem 1.25rem;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .nav-cta:hover { background: var(--pink-500); }
+  .nav-logout {
+    background: none;
+    border: 1px solid var(--pink-200);
+    border-radius: 100px;
+    padding: 0.4rem 1rem;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-logout:hover { border-color: var(--pink-400); color: var(--pink-500); }
+  .nav-login-btn {
+    background: none;
+    border: 1px solid var(--pink-200);
+    border-radius: 100px;
+    padding: 0.4rem 1rem;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-login-btn:hover { border-color: var(--pink-400); color: var(--pink-500); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 92vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 4rem;
+    padding: 6rem 5rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 520px; height: 520px;
+    border-radius: 50%;
+    background: var(--pink-50);
+    z-index: 0;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 30%;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: var(--pink-50);
+    z-index: 0;
+  }
+  .hero-text { position: relative; z-index: 1; }
+  .hero-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--pink-500);
+    border: 1px solid var(--pink-200);
+    border-radius: 100px;
+    padding: 0.3rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.8rem, 5vw, 4.5rem);
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--gray-700);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--pink-400);
+  }
+  .hero p {
+    font-size: 1.05rem;
+    color: var(--gray-400);
+    max-width: 42ch;
+    margin-bottom: 2.5rem;
+    line-height: 1.8;
+  }
+  .hero-actions { display: flex; gap: 1rem; align-items: center; }
+  .btn-primary {
+    background: var(--pink-400);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 0.75rem 2rem;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: var(--pink-500); transform: translateY(-1px); }
+  .btn-ghost {
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s;
+  }
+  .btn-ghost:hover { color: var(--pink-400); }
+  .hero-visual {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center;
+  }
+  .hero-card {
+    background: var(--white);
+    border: 1px solid var(--pink-100);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 4px 40px rgba(226, 77, 144, 0.08);
+    position: relative;
+  }
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: -8px; left: 24px;
+    width: 50px; height: 4px;
+    border-radius: 2px;
+    background: var(--pink-300);
+  }
+  .hero-card-tag {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--pink-400);
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+  .hero-card h3 {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+  }
+  .hero-card p {
+    font-size: 0.9rem;
+    color: var(--gray-400);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+  }
+  .hero-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    border-top: 1px solid var(--pink-100);
+    padding-top: 1rem;
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink-200), var(--pink-400));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+  }
+  .floating-badge {
+    position: absolute;
+    top: -16px; right: 24px;
+    background: var(--white);
+    border: 1px solid var(--pink-100);
+    border-radius: 100px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.78rem;
+    color: var(--pink-500);
+    box-shadow: 0 2px 12px rgba(226,77,144,0.1);
+  }
+
+  /* ── STATS ── */
+  .stats {
+    background: var(--pink-500);
+    padding: 3rem 5rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: var(--serif);
+    font-size: 3rem;
+    font-weight: 300;
+    color: white;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+  }
+  .stat-label {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section { padding: 5rem 5rem; }
+  .section-header {
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .section-header h2 {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 300;
+    line-height: 1.2;
+    max-width: 22ch;
+  }
+  .section-header h2 em { font-style: italic; color: var(--pink-400); }
+  .see-all {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--pink-400);
+    text-decoration: none;
+    white-space: nowrap;
+    margin-left: 2rem;
+    transition: color 0.2s;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--sans);
+  }
+  .see-all:hover { color: var(--pink-600); }
+
+  /* ── POSTS GRID ── */
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  .post-card {
+    border: 1px solid var(--pink-100);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--white);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 40px rgba(226,77,144,0.1);
+  }
+  .post-img {
+    height: 180px;
+    background: var(--pink-50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .post-img svg { opacity: 0.3; }
+  .post-area-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: white;
+    border: 1px solid var(--pink-100);
+    border-radius: 100px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.72rem;
+    color: var(--pink-500);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  /* Admin delete button on cards */
+  .post-delete-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: white;
+    border: 1px solid var(--pink-100);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    transition: all 0.2s;
+    z-index: 2;
+  }
+  .post-delete-btn:hover { background: #fff0f5; border-color: var(--pink-300); color: var(--pink-500); }
+  .post-body { padding: 1.25rem; }
+  .post-date {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .post-title {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.3;
+    margin-bottom: 0.6rem;
+  }
+  .post-excerpt {
+    font-size: 0.88rem;
+    color: var(--gray-400);
+    line-height: 1.65;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .post-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--pink-100);
+    padding-top: 0.85rem;
+    font-size: 0.8rem;
+    color: var(--gray-400);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--gray-400);
+  }
+  .empty-state .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+  }
+  .empty-state p {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    font-weight: 300;
+    color: var(--gray-400);
+  }
+  .empty-state span {
+    font-size: 0.85rem;
+    color: var(--pink-300);
+  }
+
+  /* ── CATEGORIES ── */
+  .categories-section { padding: 0 5rem 5rem; }
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .cat-card {
+    border: 1px solid var(--pink-100);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .cat-card:hover {
+    background: var(--pink-50);
+    border-color: var(--pink-200);
+    transform: translateY(-2px);
+  }
+  .cat-card.active {
+    background: var(--pink-50);
+    border-color: var(--pink-300);
+  }
+  .cat-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--pink-50);
+    margin: 0 auto 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+  }
+  .cat-name {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    font-weight: 400;
+    margin-bottom: 0.25rem;
+  }
+  .cat-count {
+    font-size: 0.78rem;
+    color: var(--gray-400);
+  }
+
+  /* ── POST MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(61,52,56,0.55);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 20px;
+    max-width: 680px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 2.5rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 1.25rem; right: 1.25rem;
+    width: 32px; height: 32px;
+    border: 1px solid var(--pink-100);
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    color: var(--gray-400);
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--pink-50); color: var(--pink-400); }
+  .modal h2 {
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    font-weight: 300;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+  .modal-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--pink-100);
+  }
+  .modal-body {
+    font-size: 0.95rem;
+    line-height: 1.85;
+    color: var(--gray-700);
+  }
+  .modal-body h3 {
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin: 1.5rem 0 0.5rem;
+    color: var(--gray-700);
+  }
+  .modal-body p { margin-bottom: 1rem; }
+
+  /* ── NEW POST MODAL ── */
+  .new-post-modal {
+    background: white;
+    border-radius: 20px;
+    max-width: 640px;
+    width: 100%;
+    padding: 2.5rem;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .new-post-modal h2 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 300;
+    margin-bottom: 1.5rem;
+  }
+  .form-group { margin-bottom: 1.15rem; }
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-400);
+    margin-bottom: 0.4rem;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    border: 1px solid var(--pink-100);
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    color: var(--gray-700);
+    background: white;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--pink-300); }
+  .form-textarea { resize: vertical; min-height: 120px; }
+  .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--pink-100);
+    border-radius: 100px;
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: var(--gray-400);
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--pink-200); color: var(--gray-700); }
+
+  /* ── LOGIN MODAL ── */
+  .login-modal {
+    background: white;
+    border-radius: 20px;
+    max-width: 420px;
+    width: 100%;
+    padding: 2.5rem;
+    position: relative;
+    text-align: center;
+  }
+  .login-modal-icon {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--pink-50);
+    border: 1px solid var(--pink-100);
+    margin: 0 auto 1.25rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .login-modal h2 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 300;
+    margin-bottom: 0.4rem;
+  }
+  .login-modal p {
+    font-size: 0.85rem;
+    color: var(--gray-400);
+    margin-bottom: 1.75rem;
+  }
+  .login-form { text-align: left; }
+  .login-error {
+    font-size: 0.82rem;
+    color: var(--pink-500);
+    background: var(--pink-50);
+    border: 1px solid var(--pink-100);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+    display: none;
+  }
+  .login-error.show { display: block; }
+
+  /* ── LOADING ── */
+  .loading-indicator {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-400);
+    font-size: 0.9rem;
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--pink-100);
+    border-top-color: var(--pink-400);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 0.75rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--pink-100);
+    padding: 2.5rem 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--gray-400);
+  }
+  .footer-logo {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--pink-400);
+  }
+
+  @media (max-width: 900px) {
+    .hero, .posts-grid, .categories-grid { grid-template-columns: 1fr; }
+    .hero { padding: 4rem 2rem; }
+    .section, .categories-section { padding: 3rem 2rem; }
+    .stats { padding: 2.5rem 2rem; grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 1rem; text-align: center; padding: 2rem; }
+    nav { padding: 0 1.25rem; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Direito <span>em Rosa</span></div>
+  <ul class="nav-links">
+    <li><a href="#posts">Resumos</a></li>
+    <li><a href="#areas">Áreas</a></li>
+  </ul>
+  <div class="nav-right">
+    <!-- Shown only when logged in -->
+    <button class="nav-cta" id="btnNewPost" style="display:none" onclick="openNewPost()">+ Novo Post</button>
+    <button class="nav-logout" id="btnLogout" style="display:none" onclick="logout()">Sair</button>
+    <!-- Shown only when logged out -->
+    <button class="nav-login-btn" id="btnLoginNav" onclick="openLoginModal()">Admin</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text">
+    <span class="hero-tag">🌸 Blog Jurídico</span>
+    <h1>Direito descomplicado,<br><em>com elegância</em></h1>
+    <p>Resumos, mapas mentais e dicas de estudo para você arrasar nas provas, na OAB e na vida acadêmica.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('posts').scrollIntoView({behavior:'smooth'})">Ver resumos</button>
+      <a href="https://www.instagram.com/direitowcllra/" target="_blank" class="btn-ghost">Seguir no Instagram →</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-card">
+      <span class="floating-badge">✨ Blog Jurídico</span>
+      <div class="hero-card-tag">Direito em Rosa</div>
+      <h3>Conteúdo jurídico descomplicado e com estilo</h3>
+      <p>Resumos, mapas mentais e dicas de estudo direto ao ponto, para quem quer ir além.</p>
+      <div class="hero-card-meta">
+        <div class="avatar">🌸</div>
+        <span>Novos resumos sempre</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats" id="statsBar">
+  <div class="stat-item">
+    <div class="stat-num" id="statPostCount">0</div>
+    <div class="stat-label">Resumos publicados</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">8</div>
+    <div class="stat-label">Áreas do direito</div>
+  </div>
+</div>
+
+<!-- POSTS -->
+<section class="section" id="posts">
+  <div class="section-header">
+    <h2>Resumos <em>recentes</em></h2>
+    <button class="see-all" id="btnVerTodos" onclick="resetFilter()" style="display:none">Ver todos →</button>
+  </div>
+  <div class="posts-grid" id="postsGrid">
+    <div class="loading-indicator">
+      <div class="spinner"></div>
+      Carregando resumos...
+    </div>
+  </div>
+</section>
+
+<!-- AREAS -->
+<section class="categories-section" id="areas">
+  <div class="section-header">
+    <h2>Navegar por <em>área</em></h2>
+  </div>
+  <div class="categories-grid">
+    <div class="cat-card" onclick="filterPosts('Civil')" data-area="Civil">
+      <div class="cat-icon">⚖️</div>
+      <div class="cat-name">Civil</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Constitucional')" data-area="Constitucional">
+      <div class="cat-icon">📜</div>
+      <div class="cat-name">Constitucional</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Penal')" data-area="Penal">
+      <div class="cat-icon">🔐</div>
+      <div class="cat-name">Penal</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Trabalhista')" data-area="Trabalhista">
+      <div class="cat-icon">💼</div>
+      <div class="cat-name">Trabalhista</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Administrativo')" data-area="Administrativo">
+      <div class="cat-icon">🏛️</div>
+      <div class="cat-name">Administrativo</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Processual')" data-area="Processual">
+      <div class="cat-icon">📋</div>
+      <div class="cat-name">Processual</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Tributário')" data-area="Tributário">
+      <div class="cat-icon">🧾</div>
+      <div class="cat-name">Tributário</div>
+    </div>
+    <div class="cat-card" onclick="filterPosts('Empresarial')" data-area="Empresarial">
+      <div class="cat-icon">🏢</div>
+      <div class="cat-name">Empresarial</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Direito em Rosa</div>
+  <div>Feito com 🌸 para estudantes de direito</div>
+  <a href="https://www.instagram.com/direitowcllra/" target="_blank" style="color:var(--pink-400);text-decoration:none;font-size:0.82rem;">@direitowcllra</a>
+</footer>
+
+<!-- POST MODAL -->
+<div class="modal-overlay" id="postModal" onclick="if(event.target===this)closePostModal()">
+  <div class="modal" id="modalContent">
+    <button class="modal-close" onclick="closePostModal()">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- NEW POST MODAL -->
+<div class="modal-overlay" id="newPostModal" onclick="if(event.target===this)closeNewPostModal()">
+  <div class="new-post-modal">
+    <button class="modal-close" onclick="closeNewPostModal()">✕</button>
+    <h2>Novo resumo</h2>
+    <div class="form-group">
+      <label class="form-label">Título</label>
+      <input type="text" class="form-input" id="newTitle" placeholder="Ex: Contratos no Código Civil">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Área do Direito</label>
+      <select class="form-select" id="newArea">
+        <option>Civil</option>
+        <option>Constitucional</option>
+        <option>Penal</option>
+        <option>Trabalhista</option>
+        <option>Administrativo</option>
+        <option>Processual</option>
+        <option>Tributário</option>
+        <option>Empresarial</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Resumo / Conteúdo</label>
+      <textarea class="form-textarea" id="newContent" rows="8" placeholder="Escreva seu resumo aqui..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeNewPostModal()">Cancelar</button>
+      <button class="btn-primary" id="btnPublish" onclick="publishPost()">Publicar resumo</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
+  <div class="login-modal">
+    <button class="modal-close" onclick="closeLoginModal()">✕</button>
+    <div class="login-modal-icon">🔑</div>
+    <h2>Acesso Restrito</h2>
+    <p>Entre com suas credenciais para publicar conteúdo</p>
+    <div class="login-form">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <div class="form-actions">
+        <button class="btn-primary" style="width:100%;text-align:center" onclick="doLogin()" id="btnLoginSubmit">Entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC_uXZGdcRD0JSvr8C5TIfjojnoFs3V_gA",
+    authDomain: "direito-em-rosa.firebaseapp.com",
+    projectId: "direito-em-rosa",
+    storageBucket: "direito-em-rosa.firebasestorage.app",
+    messagingSenderId: "329471222814",
+    appId: "1:329471222814:web:87bcbb81a9165d87a3fa0f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let allPosts = [];
+  let isAdmin = false;
+  let currentFilter = null;
+
+  // ── AUTH STATE ──
+  onAuthStateChanged(auth, (user) => {
+    isAdmin = !!user;
+    document.getElementById('btnNewPost').style.display = isAdmin ? 'inline-block' : 'none';
+    document.getElementById('btnLogout').style.display = isAdmin ? 'inline-block' : 'none';
+    document.getElementById('btnLoginNav').style.display = isAdmin ? 'none' : 'inline-block';
+    renderPosts(currentFilter ? allPosts.filter(p => p.area === currentFilter) : allPosts);
+  });
+
+  // ── LOAD POSTS (realtime) ──
+  const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+  onSnapshot(postsQuery, (snapshot) => {
+    allPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('statPostCount').textContent = allPosts.length;
+    renderPosts(currentFilter ? allPosts.filter(p => p.area === currentFilter) : allPosts);
+  });
+
+  // ── RENDER ──
+  function renderPosts(posts) {
+    const grid = document.getElementById('postsGrid');
+    if (!posts || posts.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📚</div>
+          <p>Nenhum resumo por aqui ainda</p>
+          <span>${isAdmin ? 'Clique em "+ Novo Post" para publicar o primeiro resumo!' : 'Novos conteúdos em breve.'}</span>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = posts.map(p => {
+      const dateStr = p.createdAt ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+      return `
+        <div class="post-card" onclick="openPost('${p.id}')">
+          <div class="post-img">
+            <span class="post-area-badge">${p.area}</span>
+            ${isAdmin ? `<button class="post-delete-btn" onclick="event.stopPropagation();deletePost('${p.id}')" title="Excluir">🗑️</button>` : ''}
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#e24d90" stroke-width="1.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="post-body">
+            <div class="post-date">${dateStr}</div>
+            <div class="post-title">${p.title}</div>
+            <div class="post-excerpt">${p.excerpt}</div>
+            <div class="post-footer"><span>Leia mais →</span></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── FILTER ──
+  window.filterPosts = function(area) {
+    currentFilter = area;
+    document.getElementById('btnVerTodos').style.display = 'inline-block';
+    document.querySelectorAll('.cat-card').forEach(c => c.classList.toggle('active', c.dataset.area === area));
+    renderPosts(allPosts.filter(p => p.area === area));
+    document.getElementById('posts').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  window.resetFilter = function() {
+    currentFilter = null;
+    document.getElementById('btnVerTodos').style.display = 'none';
+    document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+    renderPosts(allPosts);
+  };
+
+  // ── OPEN POST ──
+  window.openPost = function(id) {
+    const post = allPosts.find(p => p.id === id);
+    if (!post) return;
+    const dateStr = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+    document.getElementById('modalBody').innerHTML = `
+      <div style="display:inline-block;background:var(--pink-50);color:var(--pink-500);border:1px solid var(--pink-100);border-radius:100px;padding:.2rem .8rem;font-size:.75rem;margin-bottom:.75rem">${post.area}</div>
+      <h2>${post.title}</h2>
+      <div class="modal-meta"><span>📅 ${dateStr}</span></div>
+      <div class="modal-body">${post.content}</div>`;
+    document.getElementById('postModal').classList.add('open');
+  };
+
+  window.closePostModal = function() {
+    document.getElementById('postModal').classList.remove('open');
+  };
+
+  // ── NEW POST ──
+  window.openNewPost = function() {
+    if (!isAdmin) { openLoginModal(); return; }
+    document.getElementById('newPostModal').classList.add('open');
+  };
+
+  window.closeNewPostModal = function() {
+    document.getElementById('newPostModal').classList.remove('open');
+  };
+
+  window.publishPost = async function() {
+    if (!isAdmin) return;
+    const title = document.getElementById('newTitle').value.trim();
+    const area = document.getElementById('newArea').value;
+    const content = document.getElementById('newContent').value.trim();
+    if (!title || !content) { alert('Preencha o título e o conteúdo!'); return; }
+    const btn = document.getElementById('btnPublish');
+    btn.textContent = 'Publicando...';
+    btn.disabled = true;
+    try {
+      await addDoc(collection(db, 'posts'), {
+        title,
+        area,
+        excerpt: content.substring(0, 160) + (content.length > 160 ? '...' : ''),
+        content: `<p>${content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`,
+        createdAt: serverTimestamp()
+      });
+      document.getElementById('newTitle').value = '';
+      document.getElementById('newContent').value = '';
+      closeNewPostModal();
+      document.getElementById('posts').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
+      alert('Erro ao publicar: ' + e.message);
+    }
+    btn.textContent = 'Publicar resumo';
+    btn.disabled = false;
+  };
+
+  // ── DELETE POST ──
+  window.deletePost = async function(id) {
+    if (!isAdmin) return;
+    if (!confirm('Excluir este resumo?')) return;
+    await deleteDoc(doc(db, 'posts', id));
+  };
+
+  // ── LOGIN ──
+  window.openLoginModal = function() {
+    document.getElementById('loginModal').classList.add('open');
+    setTimeout(() => document.getElementById('loginEmail').focus(), 200);
+  };
+  window.closeLoginModal = function() {
+    document.getElementById('loginModal').classList.remove('open');
+    document.getElementById('loginError').classList.remove('show');
+  };
+
+  window.doLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    const btn = document.getElementById('btnLoginSubmit');
+    errEl.classList.remove('show');
+    btn.textContent = 'Entrando...';
+    btn.disabled = true;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      closeLoginModal();
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+    } catch (e) {
+      errEl.textContent = 'E-mail ou senha incorretos.';
+      errEl.classList.add('show');
+    }
+    btn.textContent = 'Entrar';
+    btn.disabled = false;
+  };
+
+  window.logout = async function() {
+    await signOut(auth);
+  };
+</script>
+</body>
+</html>
