@@ -30,6 +30,49 @@ let formType = 'resumo';
 let contentMode = 'texto';
 let selectedPdfFile = null;
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeStoredText(value) {
+  if (typeof value !== 'string') return '';
+
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p>/gi, '\n\n')
+    .replace(/<p>/gi, '')
+    .replace(/<\/p>/gi, '')
+    .replace(/<[^>]+>/g, '');
+}
+
+function formatTextAsHtml(value) {
+  const plainText = normalizeStoredText(value).trim();
+  if (!plainText) return '';
+
+  return plainText
+    .split(/\n{2,}/)
+    .map(paragraph => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+function getSafePdfUrl(value) {
+  try {
+    const url = new URL(String(value ?? ''));
+    const isCloudinaryHost =
+      url.hostname === 'res.cloudinary.com' || url.hostname.endsWith('.cloudinary.com');
+
+    if (url.protocol !== 'https:' || !isCloudinaryHost) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
 onAuthStateChanged(auth, user => {
   isAdmin = !!user;
   document.getElementById('btnNewPost').style.display = isAdmin ? 'inline-block' : 'none';
@@ -64,11 +107,12 @@ function renderGrid(container, posts) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📚</div>
-        <p>Nenhum conteúdo por aqui ainda</p>
-        <span>${isAdmin ? 'Clique em "+ Novo Post" para publicar!' : 'Novos conteúdos em breve.'}</span>
+        <p>Nenhum conteudo por aqui ainda</p>
+        <span>${isAdmin ? 'Clique em "+ Novo Post" para publicar!' : 'Novos conteudos em breve.'}</span>
       </div>`;
     return;
   }
+
   container.innerHTML = posts.map(buildCard).join('');
 }
 
@@ -76,8 +120,16 @@ function buildCard(p) {
   const dateStr = p.createdAt
     ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
+  const safeId = encodeURIComponent(String(p.id ?? ''));
+  const safeTitle = escapeHtml(p.title);
+  const safeArea = escapeHtml(p.area);
+  const safeExcerpt = escapeHtml(p.excerpt || '');
+  const safeOabExame = escapeHtml(p.oabExame || '');
+  const safeOabFase = escapeHtml(p.oabFase || '');
+  const safeType = /^[a-z-]+$/i.test(String(p.type ?? '')) ? p.type : 'resumo';
+  const safePdfUrl = getSafePdfUrl(p.pdfUrl);
 
-  const typeLabel = { resumo: 'Resumo', artigo: 'Artigo', oab: 'OAB' }[p.type] || p.type;
+  const typeLabel = { resumo: 'Resumo', artigo: 'Artigo', oab: 'OAB' }[safeType] || safeType;
 
   const svgMap = {
     resumo: `<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#e24d90" stroke-width="1.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
@@ -85,24 +137,24 @@ function buildCard(p) {
     oab: `<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#e8810a" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`
   };
 
-  const oabMeta = (p.type === 'oab' && p.oabExame) ? ` · ${p.oabExame}` : '';
-  const faseMeta = (p.type === 'oab' && p.oabFase) ? ` · ${p.oabFase}` : '';
-  const pdfPill = p.pdfUrl ? `<span class="pdf-pill">📄 PDF</span>` : '';
-  const delBtn = isAdmin ? `<button class="post-delete-btn" onclick="event.stopPropagation();deletePost('${p.id}')" title="Excluir">🗑️</button>` : '';
-  const footerTxt = p.pdfUrl ? '📄 Baixar PDF' : 'Ler mais →';
+  const oabMeta = (safeType === 'oab' && safeOabExame) ? ` · ${safeOabExame}` : '';
+  const faseMeta = (safeType === 'oab' && safeOabFase) ? ` · ${safeOabFase}` : '';
+  const pdfPill = safePdfUrl ? `<span class="pdf-pill">📄 PDF</span>` : '';
+  const delBtn = isAdmin ? `<button class="post-delete-btn" onclick="event.stopPropagation();deletePost(decodeURIComponent('${safeId}'))" title="Excluir">🗑️</button>` : '';
+  const footerTxt = safePdfUrl ? '📄 Baixar PDF' : 'Ler mais →';
 
   return `
-    <div class="post-card" onclick="openPost('${p.id}')">
-      <div class="post-img type-${p.type}">
+    <div class="post-card" onclick="openPost(decodeURIComponent('${safeId}'))">
+      <div class="post-img type-${safeType}">
         <span class="post-type-badge">${typeLabel}</span>
-        <span class="post-area-badge">${p.area}</span>
+        <span class="post-area-badge">${safeArea}</span>
         ${pdfPill}${delBtn}
-        ${svgMap[p.type] || svgMap.resumo}
+        ${svgMap[safeType] || svgMap.resumo}
       </div>
       <div class="post-body">
         <div class="post-date">${dateStr}${oabMeta}${faseMeta}</div>
-        <div class="post-title">${p.title}</div>
-        <div class="post-excerpt">${p.excerpt || ''}</div>
+        <div class="post-title">${safeTitle}</div>
+        <div class="post-excerpt">${safeExcerpt}</div>
         <div class="post-footer"><span>${footerTxt}</span></div>
       </div>
     </div>`;
@@ -120,35 +172,37 @@ window.openPost = function (id) {
     resumo: { label: 'Resumo', bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' },
     artigo: { label: 'Artigo', bg: '#eef3fd', color: '#3b5bdb', bd: '#c5d3f6' },
     oab: { label: 'Prova OAB', bg: '#fff7ed', color: '#c2621a', bd: '#fcd9a8' }
-  }[p.type] || { label: p.type, bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' };
+  }[p.type] || { label: escapeHtml(p.type), bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' };
 
   const oabBar = (p.type === 'oab') ? `
     <div class="oab-badges">
-      ${p.oabFase ? `<span class="oab-badge">📋 ${p.oabFase}</span>` : ''}
-      ${p.oabExame ? `<span class="oab-badge">🗓️ ${p.oabExame}</span>` : ''}
+      ${p.oabFase ? `<span class="oab-badge">📋 ${escapeHtml(p.oabFase)}</span>` : ''}
+      ${p.oabExame ? `<span class="oab-badge">🗓️ ${escapeHtml(p.oabExame)}</span>` : ''}
     </div>` : '';
 
-  const contentBlock = p.content ? `<div class="modal-body">${p.content}</div>` : '';
+  const contentHtml = formatTextAsHtml(p.content);
+  const contentBlock = contentHtml ? `<div class="modal-body">${contentHtml}</div>` : '';
+  const safePdfUrl = getSafePdfUrl(p.pdfUrl);
 
-  const pdfBlock = p.pdfUrl ? `
+  const pdfBlock = safePdfUrl ? `
     <div class="pdf-download-block">
       <div class="pdf-dl-info">
         <div class="pdf-dl-icon">📄</div>
         <div>
-          <div class="pdf-dl-name">${p.pdfName || 'Arquivo PDF'}</div>
+          <div class="pdf-dl-name">${escapeHtml(p.pdfName || 'Arquivo PDF')}</div>
           <div class="pdf-dl-label">Clique para baixar o arquivo completo</div>
         </div>
       </div>
-      <a class="btn-pdf" href="${p.pdfUrl}" target="_blank">⬇ Baixar PDF</a>
+      <a class="btn-pdf" href="${safePdfUrl}" target="_blank" rel="noopener noreferrer">⬇ Baixar PDF</a>
     </div>` : '';
 
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
       <span style="background:${typeMeta.bg};color:${typeMeta.color};border:1px solid ${typeMeta.bd};border-radius:100px;padding:.2rem .85rem;font-size:.73rem;font-weight:600">${typeMeta.label}</span>
-      <span style="background:var(--pink-50);color:var(--gray-400);border:1px solid var(--pink-100);border-radius:100px;padding:.2rem .85rem;font-size:.73rem">${p.area}</span>
+      <span style="background:var(--pink-50);color:var(--gray-400);border:1px solid var(--pink-100);border-radius:100px;padding:.2rem .85rem;font-size:.73rem">${escapeHtml(p.area)}</span>
     </div>
     ${oabBar}
-    <h2>${p.title}</h2>
+    <h2>${escapeHtml(p.title)}</h2>
     <div class="modal-meta"><span>📅 ${dateStr}</span></div>
     ${contentBlock}
     ${pdfBlock}`;
@@ -173,7 +227,7 @@ window.selectType = function (type) {
 
   if (type === 'artigo') {
     areaGrid.style.display = 'none';
-    document.getElementById('areaPanelTitle').textContent = 'Artigos — exibindo todos';
+    document.getElementById('areaPanelTitle').textContent = 'Artigos - exibindo todos';
     renderBrowse();
     document.getElementById('browseResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
@@ -182,8 +236,8 @@ window.selectType = function (type) {
   areaGrid.style.display = 'flex';
   document.getElementById('browseResults').innerHTML = '';
 
-  const labels = { resumo: 'Escolha a área — Resumos', oab: 'Escolha a área — Provas OAB' };
-  document.getElementById('areaPanelTitle').textContent = labels[type] || 'Escolha a área';
+  const labels = { resumo: 'Escolha a area - Resumos', oab: 'Escolha a area - Provas OAB' };
+  document.getElementById('areaPanelTitle').textContent = labels[type] || 'Escolha a area';
 };
 
 window.selectArea = function (area) {
@@ -205,6 +259,7 @@ window.openNewPost = function () {
   if (!isAdmin) { openLoginModal(); return; }
   ['newTitle', 'newContent', 'newPdfDesc', 'newOabExame'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pdfSelectedName').textContent = '';
+  document.getElementById('pdfFileInput').value = '';
   selectedPdfFile = null;
   document.getElementById('uploadProgress').style.display = 'none';
   document.getElementById('uploadProgressBar').style.width = '0%';
@@ -236,6 +291,16 @@ window.setContentMode = function (mode) {
 window.onPdfSelected = function (e) {
   const file = e.target.files[0];
   if (!file) return;
+
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (!isPdf) {
+    alert('Selecione um arquivo PDF valido.');
+    e.target.value = '';
+    selectedPdfFile = null;
+    document.getElementById('pdfSelectedName').textContent = '';
+    return;
+  }
+
   selectedPdfFile = file;
   document.getElementById('pdfSelectedName').textContent = '📄 ' + file.name;
 };
@@ -245,7 +310,7 @@ window.publishPost = async function () {
   const title = document.getElementById('newTitle').value.trim();
   const area = formType === 'artigo' ? 'Geral' : document.getElementById('newArea').value;
   const btn = document.getElementById('btnPublish');
-  if (!title) { alert('Preencha o título!'); return; }
+  if (!title) { alert('Preencha o titulo!'); return; }
 
   btn.textContent = 'Publicando...';
   btn.disabled = true;
@@ -296,12 +361,9 @@ window.publishPost = async function () {
       ? document.getElementById('newContent').value.trim()
       : document.getElementById('newPdfDesc').value.trim();
 
-    const contentHtml = rawText
-      ? `<p>${rawText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`
-      : '';
     const excerpt = rawText.substring(0, 160) + (rawText.length > 160 ? '...' : '');
 
-    const data = { type: formType, title, area, excerpt, content: contentHtml, createdAt: serverTimestamp() };
+    const data = { type: formType, title, area, excerpt, content: rawText, createdAt: serverTimestamp() };
     if (pdfUrl) data.pdfUrl = pdfUrl;
     if (pdfName) data.pdfName = pdfName;
     if (formType === 'oab') {
@@ -321,7 +383,7 @@ window.publishPost = async function () {
 };
 
 window.deletePost = async function (id) {
-  if (!isAdmin || !confirm('Excluir este conteúdo?')) return;
+  if (!isAdmin || !confirm('Excluir este conteudo?')) return;
   await deleteDoc(doc(db, 'posts', id));
 };
 

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://api.cloudinary.com https://*.googleapis.com wss://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'">
 <title>Direito W Cllra — Blog Jurídico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -34,7 +35,7 @@
     <p>Dicas, resumos e artigos para estudantes de direito.</p>
     <div class="hero-actions">
       <button class="btn-primary" onclick="document.getElementById('posts').scrollIntoView({behavior:'smooth'})">Ver conteúdos</button>
-      <a href="https://www.instagram.com/direitowclara/" target="_blank" class="btn-ghost">Seguir no Instagram →</a>
+      <a href="https://www.instagram.com/direitowclara/" target="_blank" rel="noopener noreferrer" class="btn-ghost">Seguir no Instagram →</a>
     </div>
   </div>
   <div class="hero-visual">
@@ -120,7 +121,7 @@
 <footer>
   <div class="footer-logo">Direito W Clara</div>
   <div>Feito com amor para estudantes de direito</div>
-  <a href="https://www.instagram.com/direitowclara/" target="_blank" style="color:var(--pink-400);text-decoration:none;">@direitowcllra</a>
+  <a href="https://www.instagram.com/direitowclara/" target="_blank" rel="noopener noreferrer" style="color:var(--pink-400);text-decoration:none;">@direitowcllra</a>
 </footer>
 
 <!-- POST MODAL -->
