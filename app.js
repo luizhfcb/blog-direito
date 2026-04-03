@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp }
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const CLOUDINARY_CLOUD_NAME = 'doeuhqxdp';
@@ -25,10 +25,14 @@ let isAdmin = false;
 
 let browseType = null;
 let browseArea = null;
+let searchQuery = '';
 
 let formType = 'resumo';
 let contentMode = 'texto';
 let selectedPdfFile = null;
+
+let editingPostId = null;
+let editSelectedPdfFile = null;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -60,6 +64,14 @@ function formatTextAsHtml(value) {
     .join('');
 }
 
+function normalizeForSearch(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 function getSafePdfUrl(value) {
   try {
     const url = new URL(String(value ?? ''));
@@ -73,42 +85,78 @@ function getSafePdfUrl(value) {
   }
 }
 
-onAuthStateChanged(auth, user => {
-  isAdmin = !!user;
-  document.getElementById('btnNewPost').style.display = isAdmin ? 'inline-block' : 'none';
-  document.getElementById('btnLogout').style.display = isAdmin ? 'inline-block' : 'none';
-  document.getElementById('btnLoginNav').style.display = isAdmin ? 'none' : 'inline-block';
-  renderRecent();
-  if (browseType && (browseArea || browseType === 'artigo')) renderBrowse();
-});
-
-onSnapshot(query(collection(db, 'posts'), orderBy('createdAt', 'desc')), snap => {
-  allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  document.getElementById('statResumos').textContent = allPosts.filter(p => p.type === 'resumo').length;
-  document.getElementById('statArtigos').textContent = allPosts.filter(p => p.type === 'artigo').length;
-  document.getElementById('statOAB').textContent = allPosts.filter(p => p.type === 'oab').length;
-  renderRecent();
-  if (browseType && (browseArea || browseType === 'artigo')) renderBrowse();
-});
-
-function renderRecent() {
-  renderGrid(document.getElementById('postsGrid'), allPosts);
+function isSearchActive() {
+  return searchQuery.trim().length > 0;
 }
 
-function renderBrowse() {
-  const filtered = allPosts.filter(p =>
-    p.type === browseType && (browseType === 'artigo' || browseArea === 'Todas' || p.area === browseArea)
-  );
-  renderGrid(document.getElementById('browseResults'), filtered);
+function getSearchResults() {
+  const normalizedQuery = normalizeForSearch(searchQuery);
+  if (!normalizedQuery) return [];
+
+  return allPosts.filter(post => normalizeForSearch(post.title).includes(normalizedQuery));
 }
 
-function renderGrid(container, posts) {
+function getExcerpt(rawText) {
+  return rawText.substring(0, 160) + (rawText.length > 160 ? '...' : '');
+}
+
+function validatePdfFile(file) {
+  return !!file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
+}
+
+async function uploadPdfFile(file, progressId, progressBarId) {
+  const progress = document.getElementById(progressId);
+  const progressBar = document.getElementById(progressBarId);
+
+  progress.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`);
+
+      xhr.upload.onprogress = event => {
+        if (event.lengthComputable) {
+          progressBar.style.width = `${(event.loaded / event.total) * 100}%`;
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          resolve(JSON.parse(xhr.responseText).secure_url);
+          return;
+        }
+
+        reject(new Error(`Falha no upload: ${xhr.responseText}`));
+      };
+
+      xhr.onerror = () => reject(new Error('Erro de rede ao enviar PDF.'));
+      xhr.send(formData);
+    });
+  } finally {
+    progress.style.display = 'none';
+    progressBar.style.width = '0%';
+  }
+}
+
+function renderGrid(container, posts, emptyState = null) {
   if (!posts || posts.length === 0) {
+    const state = emptyState || {
+      icon: '📚',
+      title: 'Nenhum conteúdo por aqui ainda',
+      description: isAdmin ? 'Clique em "+ Novo Post" para publicar!' : 'Novos conteúdos em breve.'
+    };
+
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📚</div>
-        <p>Nenhum conteudo por aqui ainda</p>
-        <span>${isAdmin ? 'Clique em "+ Novo Post" para publicar!' : 'Novos conteudos em breve.'}</span>
+        <div class="empty-icon">${state.icon}</div>
+        <p>${state.title}</p>
+        <span>${state.description}</span>
       </div>`;
     return;
   }
@@ -116,18 +164,73 @@ function renderGrid(container, posts) {
   container.innerHTML = posts.map(buildCard).join('');
 }
 
-function buildCard(p) {
-  const dateStr = p.createdAt
-    ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+function renderRecent() {
+  const title = document.getElementById('recentSectionTitle');
+  const status = document.getElementById('searchStatus');
+  const clearButton = document.getElementById('btnClearSearch');
+  const searchInput = document.getElementById('searchInput');
+
+  if (searchInput && searchInput.value !== searchQuery) {
+    searchInput.value = searchQuery;
+  }
+
+  if (isSearchActive()) {
+    const results = getSearchResults();
+    title.innerHTML = 'Resultados <em>da busca</em>';
+    status.textContent = `${results.length} resultado${results.length === 1 ? '' : 's'} para "${searchQuery}"`;
+    clearButton.style.display = 'inline-flex';
+
+    renderGrid(document.getElementById('postsGrid'), results, {
+      icon: '🔎',
+      title: 'Nenhum conteúdo encontrado',
+      description: 'Tente buscar por outro título.'
+    });
+    return;
+  }
+
+  title.innerHTML = 'Conteúdos <em>recentes</em>';
+  status.textContent = 'Busque por qualquer conteúdo publicado no site.';
+  clearButton.style.display = 'none';
+  renderGrid(document.getElementById('postsGrid'), allPosts.slice(0, 3));
+}
+
+function renderBrowse() {
+  const browseHelper = document.getElementById('browseHelper');
+  const browseResults = document.getElementById('browseResults');
+  const areaPanel = document.getElementById('areaPanel');
+
+  if (isSearchActive()) {
+    browseHelper.textContent = 'A busca global está mostrando os resultados acima. Limpe a busca para explorar por categoria.';
+    browseResults.innerHTML = '';
+    areaPanel.classList.remove('visible');
+    return;
+  }
+
+  browseHelper.textContent = '';
+
+  if (!browseType || (!browseArea && browseType !== 'artigo')) {
+    browseResults.innerHTML = '';
+    return;
+  }
+
+  const filtered = allPosts.filter(post =>
+    post.type === browseType && (browseType === 'artigo' || browseArea === 'Todas' || post.area === browseArea)
+  );
+  renderGrid(browseResults, filtered);
+}
+
+function buildCard(post) {
+  const dateStr = post.createdAt
+    ? new Date(post.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
-  const safeId = encodeURIComponent(String(p.id ?? ''));
-  const safeTitle = escapeHtml(p.title);
-  const safeArea = escapeHtml(p.area);
-  const safeExcerpt = escapeHtml(p.excerpt || '');
-  const safeOabExame = escapeHtml(p.oabExame || '');
-  const safeOabFase = escapeHtml(p.oabFase || '');
-  const safeType = /^[a-z-]+$/i.test(String(p.type ?? '')) ? p.type : 'resumo';
-  const safePdfUrl = getSafePdfUrl(p.pdfUrl);
+  const safeId = encodeURIComponent(String(post.id ?? ''));
+  const safeTitle = escapeHtml(post.title);
+  const safeArea = escapeHtml(post.area);
+  const safeExcerpt = escapeHtml(post.excerpt || '');
+  const safeOabExame = escapeHtml(post.oabExame || '');
+  const safeOabFase = escapeHtml(post.oabFase || '');
+  const safeType = /^[a-z-]+$/i.test(String(post.type ?? '')) ? post.type : 'resumo';
+  const safePdfUrl = getSafePdfUrl(post.pdfUrl);
 
   const typeLabel = { resumo: 'Resumo', artigo: 'Artigo', oab: 'OAB' }[safeType] || safeType;
 
@@ -140,7 +243,11 @@ function buildCard(p) {
   const oabMeta = (safeType === 'oab' && safeOabExame) ? ` · ${safeOabExame}` : '';
   const faseMeta = (safeType === 'oab' && safeOabFase) ? ` · ${safeOabFase}` : '';
   const pdfPill = safePdfUrl ? `<span class="pdf-pill">📄 PDF</span>` : '';
-  const delBtn = isAdmin ? `<button class="post-delete-btn" onclick="event.stopPropagation();deletePost(decodeURIComponent('${safeId}'))" title="Excluir">🗑️</button>` : '';
+  const adminActions = isAdmin ? `
+    <div class="post-admin-actions">
+      <button class="post-edit-btn" onclick="event.stopPropagation();openEditPost(decodeURIComponent('${safeId}'))" title="Editar">Editar</button>
+      <button class="post-delete-btn" onclick="event.stopPropagation();deletePost(decodeURIComponent('${safeId}'))" title="Excluir">🗑</button>
+    </div>` : '';
   const footerTxt = safePdfUrl ? '📄 Baixar PDF' : 'Ler mais →';
 
   return `
@@ -148,7 +255,8 @@ function buildCard(p) {
       <div class="post-img type-${safeType}">
         <span class="post-type-badge">${typeLabel}</span>
         <span class="post-area-badge">${safeArea}</span>
-        ${pdfPill}${delBtn}
+        ${pdfPill}
+        ${adminActions}
         ${svgMap[safeType] || svgMap.resumo}
       </div>
       <div class="post-body">
@@ -160,36 +268,100 @@ function buildCard(p) {
     </div>`;
 }
 
-window.openPost = function (id) {
-  const p = allPosts.find(x => x.id === id);
-  if (!p) return;
+function configureEditModal(post) {
+  const safePdfUrl = getSafePdfUrl(post.pdfUrl);
+  const typeLabel = { resumo: 'Resumo', artigo: 'Artigo', oab: 'Prova OAB' }[post.type] || 'Conteúdo';
 
-  const dateStr = p.createdAt
-    ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  document.getElementById('editTypeLabel').textContent = typeLabel;
+  document.getElementById('editTitle').value = post.title || '';
+  document.getElementById('editContent').value = normalizeStoredText(post.content);
+  document.getElementById('editPdfSelectedName').textContent = '';
+  document.getElementById('editPdfFileInput').value = '';
+  document.getElementById('editUploadProgress').style.display = 'none';
+  document.getElementById('editUploadProgressBar').style.width = '0%';
+
+  const areaGroup = document.getElementById('editAreaGroup');
+  if (post.type === 'artigo') {
+    areaGroup.style.display = 'none';
+  } else {
+    areaGroup.style.display = 'block';
+    document.getElementById('editArea').value = post.area || 'Civil';
+  }
+
+  const oabFields = document.getElementById('editOabFields');
+  if (post.type === 'oab') {
+    oabFields.classList.add('visible');
+    document.getElementById('editOabFase').value = post.oabFase || '1ª Fase';
+    document.getElementById('editOabExame').value = post.oabExame || '';
+  } else {
+    oabFields.classList.remove('visible');
+    document.getElementById('editOabFase').value = '1ª Fase';
+    document.getElementById('editOabExame').value = '';
+  }
+
+  const currentFileBlock = document.getElementById('editCurrentFileBlock');
+  const currentFileName = document.getElementById('editCurrentFileName');
+  const currentFileLink = document.getElementById('editCurrentFileLink');
+
+  if (safePdfUrl) {
+    currentFileBlock.style.display = 'flex';
+    currentFileName.textContent = post.pdfName || 'Arquivo PDF atual';
+    currentFileLink.href = safePdfUrl;
+  } else {
+    currentFileBlock.style.display = 'none';
+    currentFileName.textContent = '';
+    currentFileLink.removeAttribute('href');
+  }
+}
+
+onAuthStateChanged(auth, user => {
+  isAdmin = !!user;
+  document.getElementById('btnNewPost').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('btnLogout').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('btnLoginNav').style.display = isAdmin ? 'none' : 'inline-block';
+  renderRecent();
+  renderBrowse();
+});
+
+onSnapshot(query(collection(db, 'posts'), orderBy('createdAt', 'desc')), snap => {
+  allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  document.getElementById('statResumos').textContent = allPosts.filter(post => post.type === 'resumo').length;
+  document.getElementById('statArtigos').textContent = allPosts.filter(post => post.type === 'artigo').length;
+  document.getElementById('statOAB').textContent = allPosts.filter(post => post.type === 'oab').length;
+  renderRecent();
+  renderBrowse();
+});
+
+window.openPost = function (id) {
+  const post = allPosts.find(item => item.id === id);
+  if (!post) return;
+
+  const dateStr = post.createdAt
+    ? new Date(post.createdAt.seconds * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
   const typeMeta = {
     resumo: { label: 'Resumo', bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' },
     artigo: { label: 'Artigo', bg: '#eef3fd', color: '#3b5bdb', bd: '#c5d3f6' },
     oab: { label: 'Prova OAB', bg: '#fff7ed', color: '#c2621a', bd: '#fcd9a8' }
-  }[p.type] || { label: escapeHtml(p.type), bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' };
+  }[post.type] || { label: escapeHtml(post.type), bg: 'var(--pink-50)', color: 'var(--pink-500)', bd: 'var(--pink-200)' };
 
-  const oabBar = (p.type === 'oab') ? `
+  const oabBar = (post.type === 'oab') ? `
     <div class="oab-badges">
-      ${p.oabFase ? `<span class="oab-badge">📋 ${escapeHtml(p.oabFase)}</span>` : ''}
-      ${p.oabExame ? `<span class="oab-badge">🗓️ ${escapeHtml(p.oabExame)}</span>` : ''}
+      ${post.oabFase ? `<span class="oab-badge">📋 ${escapeHtml(post.oabFase)}</span>` : ''}
+      ${post.oabExame ? `<span class="oab-badge">🗓️ ${escapeHtml(post.oabExame)}</span>` : ''}
     </div>` : '';
 
-  const contentHtml = formatTextAsHtml(p.content);
+  const contentHtml = formatTextAsHtml(post.content);
   const contentBlock = contentHtml ? `<div class="modal-body">${contentHtml}</div>` : '';
-  const safePdfUrl = getSafePdfUrl(p.pdfUrl);
+  const safePdfUrl = getSafePdfUrl(post.pdfUrl);
 
   const pdfBlock = safePdfUrl ? `
     <div class="pdf-download-block">
       <div class="pdf-dl-info">
         <div class="pdf-dl-icon">📄</div>
         <div>
-          <div class="pdf-dl-name">${escapeHtml(p.pdfName || 'Arquivo PDF')}</div>
+          <div class="pdf-dl-name">${escapeHtml(post.pdfName || 'Arquivo PDF')}</div>
           <div class="pdf-dl-label">Clique para baixar o arquivo completo</div>
         </div>
       </div>
@@ -199,64 +371,85 @@ window.openPost = function (id) {
   document.getElementById('modalBody').innerHTML = `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
       <span style="background:${typeMeta.bg};color:${typeMeta.color};border:1px solid ${typeMeta.bd};border-radius:100px;padding:.2rem .85rem;font-size:.73rem;font-weight:600">${typeMeta.label}</span>
-      <span style="background:var(--pink-50);color:var(--gray-400);border:1px solid var(--pink-100);border-radius:100px;padding:.2rem .85rem;font-size:.73rem">${escapeHtml(p.area)}</span>
+      <span style="background:var(--pink-50);color:var(--gray-400);border:1px solid var(--pink-100);border-radius:100px;padding:.2rem .85rem;font-size:.73rem">${escapeHtml(post.area)}</span>
     </div>
     ${oabBar}
-    <h2>${escapeHtml(p.title)}</h2>
+    <h2>${escapeHtml(post.title)}</h2>
     <div class="modal-meta"><span>📅 ${dateStr}</span></div>
     ${contentBlock}
     ${pdfBlock}`;
 
   document.getElementById('postModal').classList.add('open');
 };
+
 window.closePostModal = () => document.getElementById('postModal').classList.remove('open');
 
 window.selectType = function (type) {
   browseType = type;
   browseArea = type === 'artigo' ? 'Todas' : null;
 
-  ['resumo', 'artigo', 'oab'].forEach(t => {
-    document.getElementById(`tab-${t}`).className = 'type-tab' + (t === type ? ` sel-${t}` : '');
+  ['resumo', 'artigo', 'oab'].forEach(item => {
+    document.getElementById(`tab-${item}`).className = 'type-tab' + (item === type ? ` sel-${item}` : '');
   });
 
-  const areaPanel = document.getElementById('areaPanel');
-  const areaGrid = document.getElementById('areasGrid');
-
-  areaPanel.classList.add('visible');
-  document.querySelectorAll('.area-chip').forEach(c => c.className = 'area-chip');
+  document.getElementById('areaPanel').classList.add('visible');
+  document.querySelectorAll('.area-chip').forEach(chip => chip.className = 'area-chip');
 
   if (type === 'artigo') {
-    areaGrid.style.display = 'none';
+    document.getElementById('areasGrid').style.display = 'none';
     document.getElementById('areaPanelTitle').textContent = 'Artigos - exibindo todos';
     renderBrowse();
     document.getElementById('browseResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
 
-  areaGrid.style.display = 'flex';
+  document.getElementById('areasGrid').style.display = 'flex';
   document.getElementById('browseResults').innerHTML = '';
 
-  const labels = { resumo: 'Escolha a area - Resumos', oab: 'Escolha a area - Provas OAB' };
-  document.getElementById('areaPanelTitle').textContent = labels[type] || 'Escolha a area';
+  const labels = { resumo: 'Escolha a área - Resumos', oab: 'Escolha a área - Provas OAB' };
+  document.getElementById('areaPanelTitle').textContent = labels[type] || 'Escolha a área';
 };
 
 window.selectArea = function (area) {
   browseArea = area;
-  const selClass = { resumo: 'sel-resumo', artigo: 'sel-artigo', oab: 'sel-oab' }[browseType] || 'sel-resumo';
-  document.querySelectorAll('.area-chip').forEach(c => {
-    c.className = 'area-chip' + (c.dataset.area === area ? ` ${selClass}` : '');
+  const selectedClass = { resumo: 'sel-resumo', artigo: 'sel-artigo', oab: 'sel-oab' }[browseType] || 'sel-resumo';
+
+  document.querySelectorAll('.area-chip').forEach(chip => {
+    chip.className = 'area-chip' + (chip.dataset.area === area ? ` ${selectedClass}` : '');
   });
+
   renderBrowse();
   document.getElementById('browseResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 window.resetFilter = function () {
   document.getElementById('btnVerTodos').style.display = 'none';
+  browseType = null;
+  browseArea = null;
+  document.getElementById('browseResults').innerHTML = '';
+  document.getElementById('areaPanel').classList.remove('visible');
   renderRecent();
 };
 
+window.setSearchQuery = function (value) {
+  searchQuery = value.trim();
+  renderRecent();
+  renderBrowse();
+};
+
+window.clearSearch = function () {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  renderRecent();
+  renderBrowse();
+};
+
 window.openNewPost = function () {
-  if (!isAdmin) { openLoginModal(); return; }
+  if (!isAdmin) {
+    openLoginModal();
+    return;
+  }
+
   ['newTitle', 'newContent', 'newPdfDesc', 'newOabExame'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pdfSelectedName').textContent = '';
   document.getElementById('pdfFileInput').value = '';
@@ -267,15 +460,18 @@ window.openNewPost = function () {
   setContentMode('texto');
   document.getElementById('newPostModal').classList.add('open');
 };
+
 window.closeNewPostModal = () => document.getElementById('newPostModal').classList.remove('open');
 
 window.setFormType = function (type) {
   formType = type;
-  ['resumo', 'artigo', 'oab'].forEach(t => {
-    document.getElementById(`ftype-${t}`).className = 'form-type-btn' + (t === type ? ` sel-${t}` : '');
+  ['resumo', 'artigo', 'oab'].forEach(item => {
+    document.getElementById(`ftype-${item}`).className = 'form-type-btn' + (item === type ? ` sel-${item}` : '');
   });
+
   document.getElementById('oabFields').className = 'oab-fields' + (type === 'oab' ? ' visible' : '');
   document.getElementById('newAreaGroup').style.display = type === 'artigo' ? 'none' : 'block';
+
   const labels = { resumo: 'Publicar Resumo', artigo: 'Publicar Artigo', oab: 'Publicar Prova OAB' };
   document.getElementById('btnPublish').textContent = labels[type];
 };
@@ -288,29 +484,33 @@ window.setContentMode = function (mode) {
   document.getElementById('modePDF').style.display = mode === 'pdf' ? 'block' : 'none';
 };
 
-window.onPdfSelected = function (e) {
-  const file = e.target.files[0];
+window.onPdfSelected = function (event) {
+  const file = event.target.files[0];
   if (!file) return;
 
-  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  if (!isPdf) {
-    alert('Selecione um arquivo PDF valido.');
-    e.target.value = '';
+  if (!validatePdfFile(file)) {
+    alert('Selecione um arquivo PDF válido.');
+    event.target.value = '';
     selectedPdfFile = null;
     document.getElementById('pdfSelectedName').textContent = '';
     return;
   }
 
   selectedPdfFile = file;
-  document.getElementById('pdfSelectedName').textContent = '📄 ' + file.name;
+  document.getElementById('pdfSelectedName').textContent = `📄 ${file.name}`;
 };
 
 window.publishPost = async function () {
   if (!isAdmin) return;
+
   const title = document.getElementById('newTitle').value.trim();
   const area = formType === 'artigo' ? 'Geral' : document.getElementById('newArea').value;
   const btn = document.getElementById('btnPublish');
-  if (!title) { alert('Preencha o titulo!'); return; }
+
+  if (!title) {
+    alert('Preencha o título!');
+    return;
+  }
 
   btn.textContent = 'Publicando...';
   btn.disabled = true;
@@ -327,43 +527,23 @@ window.publishPost = async function () {
         return;
       }
 
-      const prog = document.getElementById('uploadProgress');
-      const bar = document.getElementById('uploadProgressBar');
-      prog.style.display = 'block';
-
-      pdfUrl = await new Promise((res, rej) => {
-        const formData = new FormData();
-        formData.append('file', selectedPdfFile);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`);
-
-        xhr.upload.onprogress = e => {
-          if (e.lengthComputable) bar.style.width = (e.loaded / e.total * 100) + '%';
-        };
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            res(JSON.parse(xhr.responseText).secure_url);
-          } else {
-            rej(new Error('Falha no upload: ' + xhr.responseText));
-          }
-        };
-        xhr.onerror = () => rej(new Error('Erro de rede ao enviar PDF.'));
-        xhr.send(formData);
-      });
-
+      pdfUrl = await uploadPdfFile(selectedPdfFile, 'uploadProgress', 'uploadProgressBar');
       pdfName = selectedPdfFile.name;
-      prog.style.display = 'none';
     }
 
     const rawText = contentMode === 'texto'
       ? document.getElementById('newContent').value.trim()
       : document.getElementById('newPdfDesc').value.trim();
 
-    const excerpt = rawText.substring(0, 160) + (rawText.length > 160 ? '...' : '');
+    const data = {
+      type: formType,
+      title,
+      area,
+      excerpt: getExcerpt(rawText),
+      content: rawText,
+      createdAt: serverTimestamp()
+    };
 
-    const data = { type: formType, title, area, excerpt, content: rawText, createdAt: serverTimestamp() };
     if (pdfUrl) data.pdfUrl = pdfUrl;
     if (pdfName) data.pdfName = pdfName;
     if (formType === 'oab') {
@@ -374,16 +554,101 @@ window.publishPost = async function () {
     await addDoc(collection(db, 'posts'), data);
     closeNewPostModal();
     document.getElementById('posts').scrollIntoView({ behavior: 'smooth' });
-  } catch (e) {
-    alert('Erro ao publicar: ' + e.message);
+  } catch (error) {
+    alert(`Erro ao publicar: ${error.message}`);
   }
 
   btn.textContent = { resumo: 'Publicar Resumo', artigo: 'Publicar Artigo', oab: 'Publicar Prova OAB' }[formType];
   btn.disabled = false;
 };
 
+window.openEditPost = function (id) {
+  if (!isAdmin) return;
+
+  const post = allPosts.find(item => item.id === id);
+  if (!post) return;
+
+  editingPostId = id;
+  editSelectedPdfFile = null;
+  configureEditModal(post);
+  document.getElementById('editPostModal').classList.add('open');
+};
+
+window.closeEditPostModal = function () {
+  editingPostId = null;
+  editSelectedPdfFile = null;
+  document.getElementById('editPostModal').classList.remove('open');
+};
+
+window.onEditPdfSelected = function (event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!validatePdfFile(file)) {
+    alert('Selecione um arquivo PDF válido.');
+    event.target.value = '';
+    editSelectedPdfFile = null;
+    document.getElementById('editPdfSelectedName').textContent = '';
+    return;
+  }
+
+  editSelectedPdfFile = file;
+  document.getElementById('editPdfSelectedName').textContent = `📄 Novo arquivo: ${file.name}`;
+};
+
+window.savePostChanges = async function () {
+  if (!isAdmin || !editingPostId) return;
+
+  const post = allPosts.find(item => item.id === editingPostId);
+  if (!post) return;
+
+  const title = document.getElementById('editTitle').value.trim();
+  const rawText = document.getElementById('editContent').value.trim();
+  const btn = document.getElementById('btnSaveEdit');
+
+  if (!title) {
+    alert('Preencha o título!');
+    return;
+  }
+
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+
+  try {
+    let pdfUrl = post.pdfUrl || null;
+    let pdfName = post.pdfName || null;
+
+    if (editSelectedPdfFile) {
+      pdfUrl = await uploadPdfFile(editSelectedPdfFile, 'editUploadProgress', 'editUploadProgressBar');
+      pdfName = editSelectedPdfFile.name;
+    }
+
+    const updates = {
+      title,
+      area: post.type === 'artigo' ? 'Geral' : document.getElementById('editArea').value,
+      excerpt: getExcerpt(rawText),
+      content: rawText
+    };
+
+    if (pdfUrl) updates.pdfUrl = pdfUrl;
+    if (pdfName) updates.pdfName = pdfName;
+    if (post.type === 'oab') {
+      updates.oabFase = document.getElementById('editOabFase').value;
+      updates.oabExame = document.getElementById('editOabExame').value.trim();
+    }
+
+    await updateDoc(doc(db, 'posts', editingPostId), updates);
+    closeEditPostModal();
+  } catch (error) {
+    alert(`Erro ao salvar alterações: ${error.message}`);
+  }
+
+  btn.textContent = 'Salvar alterações';
+  btn.disabled = false;
+};
+
 window.deletePost = async function (id) {
-  if (!isAdmin || !confirm('Excluir este conteudo?')) return;
+  if (!isAdmin || !confirm('Excluir este conteúdo?')) return;
   await deleteDoc(doc(db, 'posts', id));
 };
 
@@ -391,18 +656,22 @@ window.openLoginModal = function () {
   document.getElementById('loginModal').classList.add('open');
   setTimeout(() => document.getElementById('loginEmail').focus(), 200);
 };
+
 window.closeLoginModal = function () {
   document.getElementById('loginModal').classList.remove('open');
   document.getElementById('loginError').classList.remove('show');
 };
+
 window.doLogin = async function () {
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
   const err = document.getElementById('loginError');
   const btn = document.getElementById('btnLoginSubmit');
+
   err.classList.remove('show');
   btn.textContent = 'Entrando...';
   btn.disabled = true;
+
   try {
     await signInWithEmailAndPassword(auth, email, pwd);
     closeLoginModal();
@@ -412,9 +681,12 @@ window.doLogin = async function () {
     err.textContent = 'E-mail ou senha incorretos.';
     err.classList.add('show');
   }
+
   btn.textContent = 'Entrar';
   btn.disabled = false;
 };
+
 window.logout = () => signOut(auth);
 
 setFormType('resumo');
+renderRecent();

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://api.cloudinary.com https://*.googleapis.com wss://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'">
-<title>Direito W Cllra — Blog Jurídico</title>
+<title>Direito W Clara — Blog Jurídico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -44,7 +44,6 @@
       <div class="hero-card-tag">Direito W Clara</div>
       <h3>Conteúdo jurídico descomplicado e com estilo</h3>
       <p>Resumos e dicas, para quem quer ir além.</p>
-      
     </div>
   </div>
 </section>
@@ -59,8 +58,15 @@
 <!-- RECENT POSTS -->
 <section class="section" id="posts">
   <div class="section-header">
-    <h2>Conteúdos <em>recentes</em></h2>
+    <h2 id="recentSectionTitle">Conteúdos <em>recentes</em></h2>
     <button class="see-all" id="btnVerTodos" onclick="resetFilter()" style="display:none">Ver todos →</button>
+  </div>
+  <div class="search-toolbar">
+    <div class="search-field">
+      <input type="text" class="search-input" id="searchInput" placeholder="Buscar por título entre todos os conteúdos" oninput="setSearchQuery(this.value)">
+      <button class="search-clear" id="btnClearSearch" onclick="clearSearch()" style="display:none">Limpar</button>
+    </div>
+    <div class="search-status" id="searchStatus">Busque por qualquer conteúdo publicado no site.</div>
   </div>
   <div class="posts-grid" id="postsGrid">
     <div class="loading-indicator"><div class="spinner"></div>Carregando...</div>
@@ -72,8 +78,8 @@
   <div class="section-header">
     <h2>Explorar por <em>categoria</em></h2>
   </div>
+  <p class="browse-helper" id="browseHelper"></p>
 
-  <!-- Step 1 – choose type -->
   <div class="type-tabs">
     <button class="type-tab" id="tab-resumo" onclick="selectType('resumo')">
       <span class="type-tab-icon">📚</span>
@@ -98,21 +104,19 @@
     </button>
   </div>
 
-  <!-- Step 2 – choose area -->
   <div class="area-panel" id="areaPanel">
     <div class="area-panel-title" id="areaPanelTitle">Escolha a área do direito</div>
     <div class="areas-grid" id="areasGrid">
-      <button class="area-chip" data-area="Todas"          onclick="selectArea('Todas')">Todas</button>
-      <button class="area-chip" data-area="Civil"          onclick="selectArea('Civil')">⚖️ Civil</button>
+      <button class="area-chip" data-area="Todas" onclick="selectArea('Todas')">Todas</button>
+      <button class="area-chip" data-area="Civil" onclick="selectArea('Civil')">⚖️ Civil</button>
       <button class="area-chip" data-area="Constitucional" onclick="selectArea('Constitucional')">📜 Constitucional</button>
-      <button class="area-chip" data-area="Penal"          onclick="selectArea('Penal')">🔐 Penal</button>
-      <button class="area-chip" data-area="Trabalhista"    onclick="selectArea('Trabalhista')">💼 Trabalhista</button>
+      <button class="area-chip" data-area="Penal" onclick="selectArea('Penal')">🔐 Penal</button>
+      <button class="area-chip" data-area="Trabalhista" onclick="selectArea('Trabalhista')">💼 Trabalhista</button>
       <button class="area-chip" data-area="Administrativo" onclick="selectArea('Administrativo')">🏛️ Administrativo</button>
-      <button class="area-chip" data-area="Processual"     onclick="selectArea('Processual')">📋 Processual</button>
-      <button class="area-chip" data-area="Tributário"     onclick="selectArea('Tributário')">🧾 Tributário</button>
-      <button class="area-chip" data-area="Empresarial"    onclick="selectArea('Empresarial')">🏢 Empresarial</button>
+      <button class="area-chip" data-area="Processual" onclick="selectArea('Processual')">📋 Processual</button>
+      <button class="area-chip" data-area="Tributário" onclick="selectArea('Tributário')">🧾 Tributário</button>
+      <button class="area-chip" data-area="Empresarial" onclick="selectArea('Empresarial')">🏢 Empresarial</button>
     </div>
-    <!-- Step 3 – results -->
     <div class="browse-results" id="browseResults"></div>
   </div>
 </section>
@@ -139,14 +143,12 @@
     <h2>Novo conteúdo</h2>
     <p class="modal-subtitle">Escolha o tipo de publicação e preencha os campos</p>
 
-    <!-- Type selector -->
     <div class="form-type-tabs">
       <button class="form-type-btn sel-resumo" id="ftype-resumo" onclick="setFormType('resumo')">📚 Resumo</button>
-      <button class="form-type-btn"            id="ftype-artigo" onclick="setFormType('artigo')">✍️ Artigo</button>
-      <button class="form-type-btn"            id="ftype-oab"    onclick="setFormType('oab')">⚖️ Prova OAB</button>
+      <button class="form-type-btn" id="ftype-artigo" onclick="setFormType('artigo')">✍️ Artigo</button>
+      <button class="form-type-btn" id="ftype-oab" onclick="setFormType('oab')">⚖️ Prova OAB</button>
     </div>
 
-    <!-- Common fields -->
     <div class="form-group">
       <label class="form-label">Título</label>
       <input type="text" class="form-input" id="newTitle" placeholder="Título do conteúdo">
@@ -160,7 +162,6 @@
       </select>
     </div>
 
-    <!-- OAB-only fields -->
     <div class="oab-fields" id="oabFields">
       <div class="form-row">
         <div class="form-group">
@@ -176,20 +177,17 @@
       </div>
     </div>
 
-    <!-- Content: text or PDF -->
     <div class="form-group">
       <label class="form-label">Conteúdo</label>
       <div class="content-mode-toggle">
         <button class="content-mode-btn active" id="modeBtnTexto" onclick="setContentMode('texto')">✏️ Digitar texto</button>
-        <button class="content-mode-btn"        id="modeBtnPDF"   onclick="setContentMode('pdf')">📄 Anexar PDF</button>
+        <button class="content-mode-btn" id="modeBtnPDF" onclick="setContentMode('pdf')">📄 Anexar PDF</button>
       </div>
 
-      <!-- Text -->
       <div id="modeTexto">
         <textarea class="form-textarea" id="newContent" rows="7" placeholder="Escreva o conteúdo aqui...&#10;&#10;Separe parágrafos com uma linha em branco."></textarea>
       </div>
 
-      <!-- PDF -->
       <div id="modePDF" style="display:none">
         <div class="pdf-upload-zone">
           <input type="file" id="pdfFileInput" accept=".pdf" onchange="onPdfSelected(event)">
@@ -210,6 +208,76 @@
     <div class="form-actions">
       <button class="btn-cancel" onclick="closeNewPostModal()">Cancelar</button>
       <button class="btn-primary" id="btnPublish" onclick="publishPost()">Publicar Resumo</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT POST MODAL -->
+<div class="modal-overlay" id="editPostModal" onclick="if(event.target===this)closeEditPostModal()">
+  <div class="new-post-modal">
+    <button class="modal-close" onclick="closeEditPostModal()">✕</button>
+    <div class="modal-type-chip" id="editTypeLabel">Resumo</div>
+    <h2>Editar conteúdo</h2>
+    <p class="modal-subtitle">Atualize os dados do post sem precisar excluir e criar novamente.</p>
+
+    <div class="form-group">
+      <label class="form-label">Título</label>
+      <input type="text" class="form-input" id="editTitle" placeholder="Título do conteúdo">
+    </div>
+
+    <div class="form-group" id="editAreaGroup">
+      <label class="form-label">Área do Direito</label>
+      <select class="form-select" id="editArea">
+        <option>Civil</option><option>Constitucional</option><option>Penal</option>
+        <option>Trabalhista</option><option>Administrativo</option><option>Processual</option>
+        <option>Tributário</option><option>Empresarial</option>
+      </select>
+    </div>
+
+    <div class="oab-fields" id="editOabFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fase do Exame</label>
+          <select class="form-select" id="editOabFase">
+            <option>1ª Fase</option><option>2ª Fase</option><option>Prático-Profissional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Número / Ano</label>
+          <input type="text" class="form-input" id="editOabExame" placeholder="Ex: XLII – 2024">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição / Conteúdo</label>
+      <textarea class="form-textarea" id="editContent" rows="7" placeholder="Atualize o conteúdo do post..."></textarea>
+    </div>
+
+    <div class="current-file-card" id="editCurrentFileBlock" style="display:none">
+      <div>
+        <div class="current-file-label">PDF atual</div>
+        <div class="current-file-name" id="editCurrentFileName"></div>
+      </div>
+      <a class="current-file-link" id="editCurrentFileLink" href="#" target="_blank" rel="noopener noreferrer">Abrir PDF</a>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Substituir PDF (opcional)</label>
+      <div class="pdf-upload-zone">
+        <input type="file" id="editPdfFileInput" accept=".pdf" onchange="onEditPdfSelected(event)">
+        <div class="pdf-upload-icon">📄</div>
+        <div class="pdf-upload-text">Selecione um novo PDF apenas se quiser trocar o arquivo atual</div>
+        <div class="pdf-selected-name" id="editPdfSelectedName"></div>
+      </div>
+      <div class="upload-progress" id="editUploadProgress">
+        <div class="upload-progress-bar" id="editUploadProgressBar"></div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeEditPostModal()">Cancelar</button>
+      <button class="btn-primary" id="btnSaveEdit" onclick="savePostChanges()">Salvar alterações</button>
     </div>
   </div>
 </div>
